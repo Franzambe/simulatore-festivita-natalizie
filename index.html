@@ -1400,7 +1400,8 @@ async function readFile(file,kind){
     const outO={};for(const [k,m] of Object.entries(o))outO[k]=Object.entries(m).map(([a,b])=>{const [of,sd]=a.split('|');return [+of,Math.round(b*100)/100,+sd];}).sort((a,b)=>a[0]-b[0]||a[2]-b[2]);
     const nomatch=Object.keys(o).filter(k=>!KEYIX.has(k)||KEYIX.get(k)>=BASEN);
     const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const prev=DJ||{};const now=new Date().toISOString();
+    // i caricamenti successivi si sommano al data.json in preparazione (NEWDJ), non a quello pubblicato
+    const prev=NEWDJ||DJ||{};const now=new Date().toISOString();
     NEWDJ={v:3,cap:prev.cap,ts:prev.ts||now,estr:prev.estr||'',file:prev.file||'',w0:M.w0,o:prev.o||{},c:prev.c||{},cm:prev.cm||null,h:(prev.h||[]).slice()};
     let msg;
     if(kind==='c'){
@@ -1416,6 +1417,8 @@ async function readFile(file,kind){
       msg=`Portafoglio ordini: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · ordini dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Sostituisce l'ordinato precedente; i totali settimanali di questa estrazione vengono aggiunti alla storia (${NEWDJ.h.length} estrazioni). Il consegnato resta quello già caricato.`;
     }
     if(iS<0)msg+=' <b style="color:var(--red)">Attenzione: colonna SedeEvasione assente, la saturazione per sede non può usare questo file.</b>';
+    const stO=NEWDJ.file?`<b>${esc(NEWDJ.file)}</b> (estrazione ${esc(NEWDJ.estr||'')})`:'n.d.', stC=NEWDJ.cm?`<b>${esc(NEWDJ.cm.file)}</b> (consegne fino al ${new Date(NEWDJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')})`:'n.d.';
+    msg+=`<br><span style="display:inline-block;margin-top:6px;padding:4px 8px;background:#EEF3FA;border-radius:6px">data.json in preparazione · Ordinato: ${stO} · Consegnato: ${stC}</span>`;
     pv.innerHTML=`<div class="note">${msg}<br>Clienti non presenti nella base storica: ${n0(nomatch.length)} (vengono mostrati come "solo in portafoglio").</div>
       <button class="btn" id="t5dl">Scarica data.json</button><button class="btn ghost" id="t5ap">Anteprima in questa pagina</button>`;
     $5('t5dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(NEWDJ)],{type:'application/json'}));a.download='data.json';a.click();};
