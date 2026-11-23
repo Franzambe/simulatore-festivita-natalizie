@@ -1396,6 +1396,10 @@ async function readFile(file,kind){
       const key=String(r[iD]).trim()+'|'+String(r[iF]).trim()+'|'+String(r[iC]).trim();
       const sk=off+'|'+(iS>=0?sIx(r[iS]):-1);(o[key]=o[key]||{})[sk]=((o[key]||{})[sk]||0)+t;}
     if(!nr)throw new Error('Nessuna riga valida nel file.');
+    // controllo di coerenza: ordinato = date future, consegnato = date passate (file scambiati o rinominati male)
+    const oggi=new Date();oggi.setHours(0,0,0,0);
+    if(kind==='o'&&dmax<oggi)throw new Error(`Questo file contiene solo date passate (dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')}, ${n0(tot)} t): sembra il CONSEGNATO, non il portafoglio ordini. Controlla il contenuto del file (il nome potrebbe essere sbagliato) e trascinalo nel riquadro 2. Il data.json in preparazione non è stato modificato.`);
+    if(kind==='c'&&dmin>=oggi)throw new Error(`Questo file contiene solo date da oggi in avanti (dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')}, ${n0(tot)} t): sembra il PORTAFOGLIO ORDINI, non il consegnato. Controlla il contenuto del file (il nome potrebbe essere sbagliato) e trascinalo nel riquadro 1. Il data.json in preparazione non è stato modificato.`);
     // l'ordinato e il consegnato del nuovo file SOSTITUISCONO quelli precedenti (nessuna unione: consegnato e ordinato sono esclusivi)
     const outO={};for(const [k,m] of Object.entries(o))outO[k]=Object.entries(m).map(([a,b])=>{const [of,sd]=a.split('|');return [+of,Math.round(b*100)/100,+sd];}).sort((a,b)=>a[0]-b[0]||a[2]-b[2]);
     const nomatch=Object.keys(o).filter(k=>!KEYIX.has(k)||KEYIX.get(k)>=BASEN);
