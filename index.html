@@ -1058,6 +1058,7 @@ function attachOrders(dj){
   ROWS.length=BASEN; KEYIX=new Map(ROWS.slice(0,BASEN).map((r,i)=>[r.key,i]));
   ROWS.forEach(r=>{r.ord=new Array(NW).fill(0);r.con=new Array(NW).fill(0);r.ev=[];});
   const w0=new Date((dj.w0||M.w0)+'T00:00:00'), shift=Math.round((w0-W0)/864e5);
+  const lastCo=dj.cm&&dj.cm.dmax?Math.round((new Date(dj.cm.dmax+'T00:00:00')-W0)/864e5):-1;
   const put=(src,fld)=>{for(const [k,arr] of Object.entries(src||{})){
     let i=KEYIX.get(k);
     if(i===undefined){
@@ -1065,7 +1066,7 @@ function attachOrders(dj){
       ROWS.push({d,f,r:respOf(d,f),t:'Non assegnato',n,c:m?m[1]:'',s:'n.d.',a:'n.d.',b:0,top:0,ca:0,x:1,key:k,ord:new Array(NW).fill(0),con:new Array(NW).fill(0),ev:[]});
       i=ROWS.length-1;KEYIX.set(k,i);
     }
-    for(const it of arr){const off=it[0],t=it[1],sd=it.length>2?it[2]:-1;const dd=off+shift, j=Math.floor(dd/7); if(j>=0&&j<NW){ROWS[i][fld][j]+=t;ROWS[i].ev.push([dd,sd,t,fld==='ord'?0:1]);}}
+    for(const it of arr){const off=it[0],t=it[1],sd=it.length>2?it[2]:-1;const dd=off+shift, j=Math.floor(dd/7); if(fld==='ord'&&dd<=lastCo)continue; if(j>=0&&j<NW){ROWS[i][fld][j]+=t;ROWS[i].ev.push([dd,sd,t,fld==='ord'?0:1]);}}
   }};
   put(dj.o,'ord'); put(dj.c,'con');
 }
@@ -1155,7 +1156,8 @@ function renderUpd(){
    `<span class="pill">Fonte: ${esc(DJ.file||'')}${DJSRC?' · '+esc(DJSRC):''}</span>`+
    (DJ.cm?`<span class="pill">Consegnato: dal ${new Date(DJ.cm.dmin+'T00:00:00').toLocaleDateString('it-IT')} al <b>${new Date(DJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')}</b> · ${esc(DJ.cm.file||'')}</span>`:'<span class="pill w">Consegnato non ancora caricato</span>')+
    `<span class="pill">Base storica: ${esc(M.base)}</span>`+(M.mapsrc?`<span class="pill">${esc(M.mapsrc)}</span>`:'')+
-   `<span class="pill">Capacità sedi: ${esc(capM().src)}</span>`;
+   `<span class="pill">Capacità sedi: ${esc(capM().src)}</span>`+
+   (DJ.pk&&DJ.pk.t>0.05?`<span class="pill w">Ordini del giorno protetti: ${n0(DJ.pk.t)} t mantenute dall'estrazione precedente (${esc(DJ.pk.d.join(', '))})</span>`:'');
 }
 
 /* ---------- render ---------- */
@@ -1417,8 +1419,23 @@ async function readFile(file,kind){
       pre=tot-tin;
       const est=ymd(new Date());
       NEWDJ.h=NEWDJ.h.filter(e=>e.estr!==est);NEWDJ.h.push({estr:est,file:file.name,w:w.map(v=>Math.round(v*10)/10),pre:Math.round(pre*10)/10});
-      NEWDJ.o=outO;NEWDJ.ts=now;NEWDJ.estr=est;NEWDJ.file=file.name;
-      msg=`Portafoglio ordini: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · ordini dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Sostituisce l'ordinato precedente; i totali settimanali di questa estrazione vengono aggiunti alla storia (${NEWDJ.h.length} estrazioni). Il consegnato resta quello già caricato.`;
+      // PROTEZIONE: per i giorni dopo l'ultimo consegnato caricato e fino a oggi, gli ordini già evasi spariscono dal portafoglio
+      // ma non sono ancora nel consegnato: per ogni cliente × giorno × sede si tiene il MAX tra estrazione precedente e nuova.
+      const offOf=s=>Math.round((new Date(s+'T00:00:00')-W0)/864e5);
+      const lastC0=NEWDJ.cm&&NEWDJ.cm.dmax?offOf(NEWDJ.cm.dmax):-1, todayOff=Math.round((oggi-W0)/864e5);
+      let kept=0;const kd=new Set();
+      for(const [k,arr] of Object.entries(prev.o||{}))for(const it of arr){
+        const off=it[0],t=it[1],sd=it.length>2?it[2]:-1;
+        if(off<=lastC0||off>todayOff)continue;
+        const sk=off+'|'+sd,m=(o[k]=o[k]||{}),cur=m[sk]||0;
+        if(t>cur+0.001){kept+=t-cur;m[sk]=t;kd.add(off);}}
+      const outO2={};for(const [k,m] of Object.entries(o))outO2[k]=Object.entries(m).map(([a,b])=>{const [of,sd]=a.split('|');return [+of,Math.round(b*100)/100,+sd];}).sort((a,b)=>a[0]-b[0]||a[2]-b[2]);
+      NEWDJ.o=outO2;NEWDJ.ts=now;NEWDJ.estr=est;NEWDJ.file=file.name;
+      const dl=o_=>{const d=new Date(W0);d.setDate(d.getDate()+o_);return d.toLocaleDateString('it-IT');};
+      const kdA=[...kd].sort((a,b)=>a-b);
+      NEWDJ.pk={t:Math.round(kept*10)/10,d:kdA.map(dl),from:dl(lastC0+1),to:dl(todayOff),src:prev.file||''};
+      msg=`Portafoglio ordini: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · ordini dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Sostituisce l'ordinato precedente; i totali settimanali di questa estrazione vengono aggiunti alla storia (${NEWDJ.h.length} estrazioni). Il consegnato resta quello già caricato.`+
+        `<br><b>Protezione ordini del giorno</b> (dal ${NEWDJ.pk.from} al ${NEWDJ.pk.to}, giorni non ancora coperti dal consegnato): `+(kept>0.05?`mantenute <b>${n0(kept)} t</b> dall'estrazione precedente (${esc(NEWDJ.pk.src)}) su ${NEWDJ.pk.d.join(', ')}, perché nel nuovo file non ci sono più o sono inferiori.`:'nessun ordine da recuperare dall\'estrazione precedente.');
     }
     if(iS<0)msg+=' <b style="color:var(--red)">Attenzione: colonna SedeEvasione assente, la saturazione per sede non può usare questo file.</b>';
     const stO=NEWDJ.file?`<b>${esc(NEWDJ.file)}</b> (estrazione ${esc(NEWDJ.estr||'')})`:'n.d.', stC=NEWDJ.cm?`<b>${esc(NEWDJ.cm.file)}</b> (consegne fino al ${new Date(NEWDJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')})`:'n.d.';
