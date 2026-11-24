@@ -1378,6 +1378,7 @@ function loadXLSX(i=0){if(window.XLSX)return Promise.resolve();
   const emb=document.getElementById('t5xlsx');if(emb&&i===0){try{const s=document.createElement('script');s.textContent=emb.textContent;document.head.appendChild(s);if(window.XLSX)return Promise.resolve();}catch(e){}}if(i>=XLSRC.length)return Promise.reject(new Error('Libreria per leggere Excel non raggiungibile: serve una connessione internet (cdn.sheetjs.com / jsdelivr / unpkg).'));
   return new Promise((ok,ko)=>{const s=document.createElement('script');s.src=XLSRC[i];s.onload=ok;s.onerror=()=>{s.remove();loadXLSX(i+1).then(ok,ko);};document.head.appendChild(s);});}
 async function readFile(file,kind){
+  const DAYALL={};
   const pv=$5('t5prev');pv.innerHTML='Lettura di <b>'+esc(file.name)+'</b> ('+(kind==='c'?'consegnato':'portafoglio ordini')+')…';
   try{
     await loadXLSX();
@@ -1395,10 +1396,16 @@ async function readFile(file,kind){
       d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+(d.getHours()>=12?1:0));
       let t=0,okq=false;for(const q of iQs){const v=+r[q];if(isFinite(v)&&r[q]!==''&&r[q]!=null){t+=v;okq=true;}}if(!okq){skip++;continue;}
       nr++;tot+=t;if(!dmin||d<dmin)dmin=d;if(!dmax||d>dmax)dmax=d;
+      {const dk=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();DAYALL[dk]=(DAYALL[dk]||0)+t;}
       const off=Math.round((d-W0)/864e5);if(off<0||off>=7*NW)continue;tin+=t;
       const key=String(r[iD]).trim()+'|'+String(r[iF]).trim()+'|'+String(r[iC]).trim();
       const sk=off+'|'+(iS>=0?sIx(r[iS]):-1);(o[key]=o[key]||{})[sk]=((o[key]||{})[sk]||0)+t;}
     if(!nr)throw new Error('Nessuna riga valida nel file.');
+    // CONTROLLO DI PLAUSIBILITÀ (consegnato): un giorno feriale non può valere ≥1,6× la mediana degli altri giorni feriali del file
+    if(kind==='c'){const ks=Object.keys(DAYALL).map(Number).filter(k=>{const dd=new Date(Math.floor(k/10000),Math.floor(k/100)%100-1,k%100).getDay();return dd>=1&&dd<=5;});
+      const bad=[];for(const k of ks){const oth=ks.filter(x=>x!==k).map(x=>DAYALL[x]).sort((a,b)=>a-b);if(oth.length<3)continue;const med=oth[Math.floor(oth.length/2)];
+        if(med>500&&DAYALL[k]>=1.6*med)bad.push(`${String(k%100).padStart(2,'0')}/${String(Math.floor(k/100)%100).padStart(2,'0')}/${Math.floor(k/10000)}: ${n0(DAYALL[k])} t contro una mediana di ${n0(med)} t degli altri giorni feriali (×${(DAYALL[k]/med).toFixed(2)})`);}
+      if(bad.length)throw new Error('Consegnato NON caricato: '+bad.join('; ')+'. Valore non plausibile, tipico di un giorno contato due volte nell\'estrazione Qlik: chiedi una nuova estrazione dopo il ricaricamento dei dati. Il data.json in preparazione non è stato modificato.');}
     // controllo di coerenza: ordinato = date future, consegnato = date passate (file scambiati o rinominati male)
     // data e ora dell'aggiornamento Qlik dal nome file (…_dd231126_h1838…); se assente, data/ora del caricamento
     const mX=String(file.name).match(/dd(\d{2})(\d{2})(\d{2})[_\s-]*h(\d{2})(\d{2})/i);
