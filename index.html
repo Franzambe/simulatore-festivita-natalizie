@@ -1151,10 +1151,11 @@ function renderUpd(){
   const el=$5('t5upd');
   if(!DJ){el.innerHTML='<span class="pill w">Caricamento dati ordini…</span>';return;}
   const ts=new Date(DJ.ts), age=(Date.now()-ts)/36e5;
+  function fmtTs(s){const d=new Date(s);return d.toLocaleDateString('it-IT')+' ore '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});}
   const tsS=ts.toLocaleDateString('it-IT')+' ore '+ts.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
   el.innerHTML=`<span class="pill ${age>36?'w':'ok'}">Portafoglio ordini aggiornato il <b>${tsS}</b>${age>36?' · più di 36 ore fa':''}</span>`+
    `<span class="pill">Fonte: ${esc(DJ.file||'')}${DJSRC?' · '+esc(DJSRC):''}</span>`+
-   (DJ.cm?`<span class="pill">Consegnato: dal ${new Date(DJ.cm.dmin+'T00:00:00').toLocaleDateString('it-IT')} al <b>${new Date(DJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')}</b> · ${esc(DJ.cm.file||'')}</span>`:'<span class="pill w">Consegnato non ancora caricato</span>')+
+   (DJ.cm?`<span class="pill">Consegnato${DJ.cm.ts?' aggiornato il <b>'+fmtTs(DJ.cm.ts)+'</b>':''}: dal ${new Date(DJ.cm.dmin+'T00:00:00').toLocaleDateString('it-IT')} al <b>${new Date(DJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')}</b> · ${esc(DJ.cm.file||'')}</span>`:'<span class="pill w">Consegnato non ancora caricato</span>')+
    `<span class="pill">Base storica: ${esc(M.base)}</span>`+(M.mapsrc?`<span class="pill">${esc(M.mapsrc)}</span>`:'')+
    `<span class="pill">Capacità sedi: ${esc(capM().src)}</span>`+
    (DJ.pk&&DJ.pk.t>0.05?`<span class="pill w">Ordini del giorno protetti: ${n0(DJ.pk.t)} t mantenute dall'estrazione precedente (${esc(DJ.pk.d.join(', '))})</span>`:'');
@@ -1226,7 +1227,7 @@ function renderHist(){
   if(!H.length){el.innerHTML='';$5('t5hs').textContent='Nessuna estrazione registrata.';return;}
   let h='<tr><th>Estrazione</th><th>Prima del 23/11 (t)</th>'+WL.map(w=>`<th>${w}</th>`).join('')+'<th>Totale 48–03</th></tr>';
   H.slice().reverse().forEach(e=>{const tot=e.w.reduce((a,b)=>a+b,0);
-    h+=`<tr><td><b>${new Date(e.estr+'T00:00:00').toLocaleDateString('it-IT')}</b><small>${esc(e.file||'')}</small></td><td>${n0(e.pre)}</td>${e.w.map(v=>`<td>${n0(v)}</td>`).join('')}<td><b>${n0(tot)}</b></td></tr>`;});
+    h+=`<tr><td><b>${new Date(e.estr+'T00:00:00').toLocaleDateString('it-IT')}${e.ts&&/\d{2}:\d{2}/.test(e.ts)?' '+new Date(e.ts).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):''}</b><small>${esc(e.file||'')}</small></td><td>${n0(e.pre)}</td>${e.w.map(v=>`<td>${n0(v)}</td>`).join('')}<td><b>${n0(tot)}</b></td></tr>`;});
   el.innerHTML=h;
   $5('t5hs').textContent=`Ordinato totale (tutte le direzioni e famiglie, senza filtri) presente in ciascuna estrazione del portafoglio. ${H.length} estrazioni registrate.`;
 }
@@ -1399,7 +1400,12 @@ async function readFile(file,kind){
       const sk=off+'|'+(iS>=0?sIx(r[iS]):-1);(o[key]=o[key]||{})[sk]=((o[key]||{})[sk]||0)+t;}
     if(!nr)throw new Error('Nessuna riga valida nel file.');
     // controllo di coerenza: ordinato = date future, consegnato = date passate (file scambiati o rinominati male)
-    const oggi=new Date();oggi.setHours(0,0,0,0);
+    // data e ora dell'aggiornamento Qlik dal nome file (…_dd231126_h1838…); se assente, data/ora del caricamento
+    const mX=String(file.name).match(/dd(\d{2})(\d{2})(\d{2})[_\s-]*h(\d{2})(\d{2})/i);
+    const xdt=mX?new Date(2000+ +mX[3],+mX[2]-1,+mX[1],+mX[4],+mX[5]):new Date();
+    const xS=xdt.toLocaleDateString('it-IT')+' ore '+xdt.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+    const xNote=mX?`Dati Qlik aggiornati il <b>${xS}</b> (dal nome file).`:`<span style="color:#b45309">Nel nome del file non c'è data/ora Qlik (formato atteso …_dd231126_h1838): uso data e ora del caricamento, ${xS}.</span>`;
+    const oggi=new Date(xdt);oggi.setHours(0,0,0,0);
     if(kind==='o'&&dmax<oggi)throw new Error(`Questo file contiene solo date passate (dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')}, ${n0(tot)} t): sembra il CONSEGNATO, non il portafoglio ordini. Controlla il contenuto del file (il nome potrebbe essere sbagliato) e trascinalo nel riquadro 2. Il data.json in preparazione non è stato modificato.`);
     if(kind==='c'&&dmin>=oggi)throw new Error(`Questo file contiene solo date da oggi in avanti (dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')}, ${n0(tot)} t): sembra il PORTAFOGLIO ORDINI, non il consegnato. Controlla il contenuto del file (il nome potrebbe essere sbagliato) e trascinalo nel riquadro 1. Il data.json in preparazione non è stato modificato.`);
     // l'ordinato e il consegnato del nuovo file SOSTITUISCONO quelli precedenti (nessuna unione: consegnato e ordinato sono esclusivi)
@@ -1407,34 +1413,38 @@ async function readFile(file,kind){
     const nomatch=Object.keys(o).filter(k=>!KEYIX.has(k)||KEYIX.get(k)>=BASEN);
     const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     // i caricamenti successivi si sommano al data.json in preparazione (NEWDJ), non a quello pubblicato
-    const prev=NEWDJ||DJ||{};const now=new Date().toISOString();
+    const prev=NEWDJ||DJ||{};const now=xdt.toISOString();
     NEWDJ={v:3,cap:prev.cap,ts:prev.ts||now,estr:prev.estr||'',file:prev.file||'',w0:M.w0,o:prev.o||{},c:prev.c||{},cm:prev.cm||null,h:(prev.h||[]).slice()};
     let msg;
     if(kind==='c'){
-      NEWDJ.c=outO;NEWDJ.cm={ts:now,file:file.name,dmin:ymd(dmin),dmax:ymd(dmax),tot:Math.round(tot*10)/10,tin:Math.round(tin*10)/10};
-      msg=`Consegnato: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · consegne dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Il consegnato precedente viene sovrascritto; l'ordinato resta quello dell'ultima estrazione (${esc(prev.file||'n.d.')}).`;
+      NEWDJ.c=outO;NEWDJ.pk=prev.pk;
+      if(NEWDJ.pk&&NEWDJ.pk.by){const lc=Math.round((dmax-W0)/864e5);const by={};for(const [k,v] of Object.entries(NEWDJ.pk.by))if(+k>lc)by[k]=v;
+        const ks=Object.keys(by).map(Number).sort((a,b)=>a-b);const dl=o_=>{const d=new Date(W0);d.setDate(d.getDate()+o_);return d.toLocaleDateString('it-IT');};
+        NEWDJ.pk=Object.assign({},NEWDJ.pk,{by,t:Math.round(ks.reduce((a,k)=>a+by[k],0)*10)/10,d:ks.map(dl)});}
+      NEWDJ.cm={ts:now,file:file.name,dmin:ymd(dmin),dmax:ymd(dmax),tot:Math.round(tot*10)/10,tin:Math.round(tin*10)/10};
+      msg=xNote+'<br>'+`Consegnato: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · consegne dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Il consegnato precedente viene sovrascritto; l'ordinato resta quello dell'ultima estrazione (${esc(prev.file||'n.d.')}).`;
     }else{
       const w=new Array(NW).fill(0);let pre=0;
       for(const m of Object.values(o))for(const [a,t] of Object.entries(m))w[Math.floor(+a.split('|')[0]/7)]+=t;
       pre=tot-tin;
-      const est=ymd(new Date());
-      NEWDJ.h=NEWDJ.h.filter(e=>e.estr!==est);NEWDJ.h.push({estr:est,file:file.name,w:w.map(v=>Math.round(v*10)/10),pre:Math.round(pre*10)/10});
+      const est=ymd(xdt);
+      NEWDJ.h=NEWDJ.h.filter(e=>e.estr!==est);NEWDJ.h.push({estr:est,ts:now,file:file.name,w:w.map(v=>Math.round(v*10)/10),pre:Math.round(pre*10)/10});
       // PROTEZIONE: per i giorni dopo l'ultimo consegnato caricato e fino a oggi, gli ordini già evasi spariscono dal portafoglio
       // ma non sono ancora nel consegnato: per ogni cliente × giorno × sede si tiene il MAX tra estrazione precedente e nuova.
       const offOf=s=>Math.round((new Date(s+'T00:00:00')-W0)/864e5);
       const lastC0=NEWDJ.cm&&NEWDJ.cm.dmax?offOf(NEWDJ.cm.dmax):-1, todayOff=Math.round((oggi-W0)/864e5);
-      let kept=0;const kd=new Set();
+      let kept=0;const kd=new Set(),kby={};
       for(const [k,arr] of Object.entries(prev.o||{}))for(const it of arr){
         const off=it[0],t=it[1],sd=it.length>2?it[2]:-1;
         if(off<=lastC0||off>todayOff)continue;
         const sk=off+'|'+sd,m=(o[k]=o[k]||{}),cur=m[sk]||0;
-        if(t>cur+0.001){kept+=t-cur;m[sk]=t;kd.add(off);}}
+        if(t>cur+0.001){kept+=t-cur;m[sk]=t;kd.add(off);kby[off]=(kby[off]||0)+t-cur;}}
       const outO2={};for(const [k,m] of Object.entries(o))outO2[k]=Object.entries(m).map(([a,b])=>{const [of,sd]=a.split('|');return [+of,Math.round(b*100)/100,+sd];}).sort((a,b)=>a[0]-b[0]||a[2]-b[2]);
       NEWDJ.o=outO2;NEWDJ.ts=now;NEWDJ.estr=est;NEWDJ.file=file.name;
       const dl=o_=>{const d=new Date(W0);d.setDate(d.getDate()+o_);return d.toLocaleDateString('it-IT');};
       const kdA=[...kd].sort((a,b)=>a-b);
-      NEWDJ.pk={t:Math.round(kept*10)/10,d:kdA.map(dl),from:dl(lastC0+1),to:dl(todayOff),src:prev.file||''};
-      msg=`Portafoglio ordini: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · ordini dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Sostituisce l'ordinato precedente; i totali settimanali di questa estrazione vengono aggiunti alla storia (${NEWDJ.h.length} estrazioni). Il consegnato resta quello già caricato.`+
+      NEWDJ.pk={t:Math.round(kept*10)/10,d:kdA.map(dl),by:Object.fromEntries(Object.entries(kby).map(([k,v])=>[k,Math.round(v*10)/10])),from:dl(lastC0+1),to:dl(todayOff),src:prev.file||''};
+      msg=xNote+'<br>'+`Portafoglio ordini: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · ordini dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Sostituisce l'ordinato precedente; i totali settimanali di questa estrazione vengono aggiunti alla storia (${NEWDJ.h.length} estrazioni). Il consegnato resta quello già caricato.`+
         `<br><b>Protezione ordini del giorno</b> (dal ${NEWDJ.pk.from} al ${NEWDJ.pk.to}, giorni non ancora coperti dal consegnato): `+(kept>0.05?`mantenute <b>${n0(kept)} t</b> dall'estrazione precedente (${esc(NEWDJ.pk.src)}) su ${NEWDJ.pk.d.join(', ')}, perché nel nuovo file non ci sono più o sono inferiori.`:'nessun ordine da recuperare dall\'estrazione precedente.');
     }
     if(iS<0)msg+=' <b style="color:var(--red)">Attenzione: colonna SedeEvasione assente, la saturazione per sede non può usare questo file.</b>';
@@ -1468,6 +1478,7 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+<script>/* scheda di apertura: 5 · Obiettivi ordini Natale */(function(){const b=document.querySelector('.tab[data-p=p5]');if(b)b.click();})();</script>
 </body>
 <script>
 /* Eventi personalizzati Umami: nessun dato personale, solo cosa viene usato */
