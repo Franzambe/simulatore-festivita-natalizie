@@ -1237,7 +1237,16 @@ const QS={v:'d',s:'',w:'',st:'',c:'K',th1:null,th2:null};
 const QST=['CAPACITÀ NON SATURA','QUASI SATURA','SATURA','OLTRE CAPACITÀ','Chiuso','n.d.'];
 const QCL={'CAPACITÀ NON SATURA':'qs-ns','QUASI SATURA':'qs-qs','SATURA':'qs-sa','OLTRE CAPACITÀ':'qs-ol','Chiuso':'qs-ch','n.d.':'qs-nd'};
 const capM=()=>(DJ&&DJ.cap)||M.cap;
-function capArr(C,key,sede){const a=((C[key]||C.K)[sede]||[]).slice();if(C.w48eq!==false){for(let d=0;d<7;d++)a[d]=a[d+7];}return a;}
+// RETTIFICHE CAPACITÀ (tetto massimo in t, applicato a evasione prevista K e producibile I, dopo la stima sett. 48)
+const CAPOV=[
+  {sede:'10-OS',data:'2026-11-26',max:1200,nota:'Manutenzione L1 Ospedaletto'},
+  {sede:'10-OS',data:'2026-11-27',max:1000,nota:'Manutenzione L1 Ospedaletto'},
+  {sede:'10-OS',data:'2026-11-28',max:1100,nota:'Manutenzione L1 Ospedaletto'},
+  {sede:'10-OS',data:'2026-11-30',max:1100,nota:'Manutenzione L1 Ospedaletto'}
+];
+function capArr(C,key,sede){const a=((C[key]||C.K)[sede]||[]).slice();if(C.w48eq!==false){for(let d=0;d<7;d++)a[d]=a[d+7];}
+  for(const r of CAPOV){if(r.sede!==sede)continue;const i=Math.round((new Date(r.data+'T00:00:00')-W0)/864e5);if(i>=0&&i<a.length)a[i]=(a[i]===null||a[i]===undefined)?r.max:Math.min(a[i],r.max);}
+  return a;}
 const w48eq=()=>capM().w48eq!==false;
 const ymdOff=s=>s?Math.round((new Date(s+'T00:00:00')-W0)/864e5):-1;
 function qStatus(disp,imp){
@@ -1314,7 +1323,7 @@ function renderSat(){
   const inW=r=>wSel===null||qWk(r.u)===wSel;
   const lastTxt=DJ.cm?new Date(DJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT'):'n.d.';
   $5('t5qsub').innerHTML=`Disponibile = ${QS.c==='K'?'<b>evasione prevista giornaliera</b> (col. K)':'<b>produzione evadibile giornaliera</b> (col. I)'} dei fogli stabilimento di ${esc(C.src)} (dal ${new Date(C.dmin+'T00:00:00').toLocaleDateString('it-IT')} al ${new Date(C.dmax+'T00:00:00').toLocaleDateString('it-IT')}). `+
-   `Numeratore = <b>consegnato</b> fino al ${lastTxt} (ultima consegna caricata) + <b>ordinato</b> dei giorni successivi (regola esclusiva). Settimane ISO lun–dom. Senza filtri la % è la saturazione reale della sede; con filtri attivi il numeratore è quello della selezione (vedi avviso).`+(w48eq()?' <b>* Sett. 48: disponibile stimato = sett. 49</b> (stesso giorno della settimana successiva, per ogni sede).':'')+
+   `Numeratore = <b>consegnato</b> fino al ${lastTxt} (ultima consegna caricata) + <b>ordinato</b> dei giorni successivi (regola esclusiva). Settimane ISO lun–dom. Senza filtri la % è la saturazione reale della sede; con filtri attivi il numeratore è quello della selezione (vedi avviso).`+(w48eq()?' <b>* Sett. 48: disponibile stimato = sett. 49</b> (stesso giorno della settimana successiva, per ogni sede).':'')+(CAPOV.length?' <b>Rettifiche capacità:</b> '+CAPOV.map(r=>`${r.sede} ${new Date(r.data+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})} max ${n0(r.max)} t`).join(', ')+' ('+esc(CAPOV[0].nota)+').':'')+
    (D.ign>0.5?` Ordini con data ≤ ultima consegna ignorati (già nel consegnato): ${n0(D.ign)} t.`:'');
   // KPI sul perimetro selezionato
   const K0=R.filter(r=>r.s===sSel&&inW(r)),K=K0.filter(r=>r.disp!==null);
