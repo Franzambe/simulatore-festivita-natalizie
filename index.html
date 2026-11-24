@@ -1417,6 +1417,13 @@ async function readFile(file,kind){
     NEWDJ={v:3,cap:prev.cap,ts:prev.ts||now,estr:prev.estr||'',file:prev.file||'',w0:M.w0,o:prev.o||{},c:prev.c||{},cm:prev.cm||null,h:(prev.h||[]).slice()};
     let msg;
     if(kind==='c'){
+      // CONTROLLO ANTI-DOPPIO: sui giorni già caricati il nuovo consegnato non può essere ~2× il precedente (estrazione Qlik duplicata)
+      {const dayT=src=>{const r={};for(const arr of Object.values(src||{}))for(const it of (Array.isArray(arr)?arr:[]))r[it[0]]=(r[it[0]]||0)+it[1];return r;};
+       const nd={};for(const m_ of Object.values(o))for(const [a_,t_] of Object.entries(m_)){const of_=+a_.split('|')[0];nd[of_]=(nd[of_]||0)+t_;}
+       const pd=dayT(prev.c), bad=[];
+       for(const [of_,pt] of Object.entries(pd)){const nt=nd[of_]||0;if(pt>200&&nt/pt>=1.5)bad.push([+of_,pt,nt]);}
+       if(bad.length){const dl=o_=>{const d=new Date(W0);d.setDate(d.getDate()+o_);return d.toLocaleDateString('it-IT');};
+         throw new Error('Consegnato NON caricato: su '+bad.map(b=>`${dl(b[0])} il nuovo file riporta ${n0(b[2])} t contro ${n0(b[1])} t del caricamento precedente (×${(b[2]/b[1]).toFixed(2)})`).join('; ')+'. È il segnale tipico di un giorno contato due volte nell\'estrazione Qlik: chiedi una nuova estrazione dopo il ricaricamento dei dati. Il data.json in preparazione non è stato modificato.');}}
       NEWDJ.c=outO;NEWDJ.pk=prev.pk;
       if(NEWDJ.pk&&NEWDJ.pk.by){const lc=Math.round((dmax-W0)/864e5);const by={};for(const [k,v] of Object.entries(NEWDJ.pk.by))if(+k>lc)by[k]=v;
         const ks=Object.keys(by).map(Number).sort((a,b)=>a-b);const dl=o_=>{const d=new Date(W0);d.setDate(d.getDate()+o_);return d.toLocaleDateString('it-IT');};
