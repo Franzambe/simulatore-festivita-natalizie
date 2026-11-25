@@ -1387,7 +1387,7 @@ function loadXLSX(i=0){if(window.XLSX)return Promise.resolve();
   const emb=document.getElementById('t5xlsx');if(emb&&i===0){try{const s=document.createElement('script');s.textContent=emb.textContent;document.head.appendChild(s);if(window.XLSX)return Promise.resolve();}catch(e){}}if(i>=XLSRC.length)return Promise.reject(new Error('Libreria per leggere Excel non raggiungibile: serve una connessione internet (cdn.sheetjs.com / jsdelivr / unpkg).'));
   return new Promise((ok,ko)=>{const s=document.createElement('script');s.src=XLSRC[i];s.onload=ok;s.onerror=()=>{s.remove();loadXLSX(i+1).then(ok,ko);};document.head.appendChild(s);});}
 async function readFile(file,kind){
-  const DAYALL={};
+  const DAYALL={},BADK=[];let KEPTMSG='';
   const pv=$5('t5prev');pv.innerHTML='Lettura di <b>'+esc(file.name)+'</b> ('+(kind==='c'?'consegnato':'portafoglio ordini')+')…';
   try{
     await loadXLSX();
@@ -1413,8 +1413,18 @@ async function readFile(file,kind){
     // CONTROLLO DI PLAUSIBILITÀ (consegnato): un giorno feriale non può valere ≥1,6× la mediana degli altri giorni feriali del file
     if(kind==='c'){const ks=Object.keys(DAYALL).map(Number).filter(k=>{const dd=new Date(Math.floor(k/10000),Math.floor(k/100)%100-1,k%100).getDay();return dd>=1&&dd<=5;});
       const bad=[];for(const k of ks){const oth=ks.filter(x=>x!==k).map(x=>DAYALL[x]).sort((a,b)=>a-b);if(oth.length<3)continue;const med=oth[Math.floor(oth.length/2)];
-        if(med>500&&DAYALL[k]>=1.6*med)bad.push(`${String(k%100).padStart(2,'0')}/${String(Math.floor(k/100)%100).padStart(2,'0')}/${Math.floor(k/10000)}: ${n0(DAYALL[k])} t contro una mediana di ${n0(med)} t degli altri giorni feriali (×${(DAYALL[k]/med).toFixed(2)})`);}
-      if(bad.length)throw new Error('Consegnato NON caricato: '+bad.join('; ')+'. Valore non plausibile, tipico di un giorno contato due volte nell\'estrazione Qlik: chiedi una nuova estrazione dopo il ricaricamento dei dati. Il data.json in preparazione non è stato modificato.');}
+        if(med>500&&DAYALL[k]>=1.6*med&&BADK.push(k))bad.push(`${String(k%100).padStart(2,'0')}/${String(Math.floor(k/100)%100).padStart(2,'0')}/${Math.floor(k/10000)}: ${n0(DAYALL[k])} t contro una mediana di ${n0(med)} t degli altri giorni feriali (×${(DAYALL[k]/med).toFixed(2)})`);}
+      if(bad.length){
+        // giorno non plausibile: se il data.json ha già un consegnato valido per quel giorno lo si mantiene, altrimenti si blocca
+        const pc=(NEWDJ||DJ||{}).c||{};const pday={};for(const arr of Object.values(pc))for(const it of arr)pday[it[0]]=(pday[it[0]]||0)+it[1];
+        const offK=k=>Math.round((new Date(Math.floor(k/10000),Math.floor(k/100)%100-1,k%100)-W0)/864e5);
+        const noPrev=BADK.filter(k=>!(pday[offK(k)]>0));
+        if(noPrev.length)throw new Error('Consegnato NON caricato: '+bad.join('; ')+'. Valore non plausibile, tipico di un giorno contato due volte nell\'estrazione Qlik, e per questo giorno non c\'è un consegnato precedente valido da mantenere: chiedi una nuova estrazione dopo il ricaricamento dei dati. Il data.json in preparazione non è stato modificato.');
+        const kill=new Set(BADK.map(offK));
+        for(const m_ of Object.values(o))for(const a_ of Object.keys(m_)){const of_=+a_.split('|')[0];if(kill.has(of_)){tin-=m_[a_];tot-=m_[a_];delete m_[a_];}}
+        for(const [k_,arr] of Object.entries(pc))for(const it of arr)if(kill.has(it[0])){const sk=it[0]+'|'+(it.length>2?it[2]:-1);(o[k_]=o[k_]||{})[sk]=((o[k_]||{})[sk]||0)+it[1];tin+=it[1];tot+=it[1];}
+        KEPTMSG='<br><b style="color:#b45309">Attenzione: giorno non plausibile nel file Qlik</b> – '+bad.join('; ')+'. Per '+[...kill].sort((a,b)=>a-b).map(x=>{const d=new Date(W0);d.setDate(d.getDate()+x);return d.toLocaleDateString('it-IT')+' ('+n0(pday[x])+' t)';}).join(', ')+' ho <b>mantenuto il consegnato già presente</b> nel data.json; tutti gli altri giorni arrivano dal nuovo file.';
+      }}
     // controllo di coerenza: ordinato = date future, consegnato = date passate (file scambiati o rinominati male)
     // data e ora dell'aggiornamento Qlik dal nome file (…_dd231126_h1838…); se assente, data/ora del caricamento
     const mX=String(file.name).match(/dd(\d{2})(\d{2})(\d{2})[_\s-]*h(\d{2})(\d{2})/i);
@@ -1470,6 +1480,7 @@ async function readFile(file,kind){
       msg=xNote+'<br>'+`Portafoglio ordini: <b>${n0(nr)}</b> righe lette (${n0(skip)} scartate) · ordini dal ${dmin.toLocaleDateString('it-IT')} al ${dmax.toLocaleDateString('it-IT')} · <b>${n0(tot)} t</b> totali, di cui <b>${n0(tin)} t</b> nell'orizzonte 48/26–03/27. Sostituisce l'ordinato precedente; i totali settimanali di questa estrazione vengono aggiunti alla storia (${NEWDJ.h.length} estrazioni). Il consegnato resta quello già caricato.`+
         `<br><b>Protezione ordini del giorno</b> (dal ${NEWDJ.pk.from} al ${NEWDJ.pk.to}, giorni non ancora coperti dal consegnato): `+(kept>0.05?`mantenute <b>${n0(kept)} t</b> dall'estrazione precedente (${esc(NEWDJ.pk.src)}) su ${NEWDJ.pk.d.join(', ')}, perché nel nuovo file non ci sono più o sono inferiori.`:'nessun ordine da recuperare dall\'estrazione precedente.');
     }
+    msg+=KEPTMSG;
     if(iS<0)msg+=' <b style="color:var(--red)">Attenzione: colonna SedeEvasione assente, la saturazione per sede non può usare questo file.</b>';
     const stO=NEWDJ.file?`<b>${esc(NEWDJ.file)}</b> (estrazione ${esc(NEWDJ.estr||'')})`:'n.d.', stC=NEWDJ.cm?`<b>${esc(NEWDJ.cm.file)}</b> (consegne fino al ${new Date(NEWDJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')})`:'n.d.';
     msg+=`<br><span style="display:inline-block;margin-top:6px;padding:4px 8px;background:#EEF3FA;border-radius:6px">data.json in preparazione · Ordinato: ${stO} · Consegnato: ${stC}</span>`;
@@ -1477,7 +1488,11 @@ async function readFile(file,kind){
       <button class="btn" id="t5dl">Scarica data.json</button><button class="btn ghost" id="t5ap">Anteprima in questa pagina</button>`;
     $5('t5dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(NEWDJ)],{type:'application/json'}));a.download='data.json';a.click();};
     $5('t5ap').onclick=()=>{setDJ(NEWDJ,'anteprima locale non pubblicata');};
-  }catch(e){pv.innerHTML='<div class="note" style="border-color:var(--red)"><b>Errore:</b> '+esc(e.message)+'</div>';}
+  }catch(e){pv.innerHTML='<div class="note" style="border-color:var(--red)"><b>Errore:</b> '+esc(e.message)+'</div>';
+    if(NEWDJ){const stO=NEWDJ.file?esc(NEWDJ.file):'n.d.',stC=NEWDJ.cm?esc(NEWDJ.cm.file)+' (consegne fino al '+new Date(NEWDJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')+')':'n.d.';
+      pv.innerHTML+=`<div class="note">Il data.json in preparazione resta valido con i caricamenti precedenti · Ordinato: <b>${stO}</b> · Consegnato: <b>${stC}</b></div><button class="btn" id="t5dl">Scarica data.json</button><button class="btn ghost" id="t5ap">Anteprima in questa pagina</button>`;
+      $5('t5dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(NEWDJ)],{type:'application/json'}));a.download='data.json';a.click();};
+      $5('t5ap').onclick=()=>{setDJ(NEWDJ,'anteprima locale non pubblicata');};}}
 }
 function buildAdmin(){
   [['t5file','t5drop','o'],['t5filec','t5dropc','c']].forEach(([fid,did,kind])=>{
