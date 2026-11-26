@@ -117,6 +117,17 @@ footer{color:var(--grey);font-size:11.5px;padding:0 28px 22px;max-width:1500px;m
 #t5prev .btn{margin-right:8px;margin-top:8px}
 .s6-par{display:none;margin-top:12px;padding-top:12px;border-top:1px dashed #cfd8e3}.s6-par.on{display:block}
 #s6ban{display:none}#s6ban.on{display:block}
+.t5-updd{margin-bottom:12px}.t5-updd summary{cursor:pointer;font-size:12.5px;color:#7a869a;font-weight:600;margin-bottom:8px}
+.cvf{margin-top:6px;font-size:12px;color:#5b6b84;text-align:left}.cvf b{color:var(--navy)}
+.s6bar{position:sticky;top:0;z-index:20;margin-bottom:16px;box-shadow:0 4px 12px rgba(31,56,100,.10)}
+.s6sum{display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:8px;border-top:1px dashed #cfd8e3;font-size:13px;color:#33415c;flex-wrap:wrap}
+.s6sum b{color:var(--navy)}.s6sum .sep{color:#b8c2d3;margin:0 2px}
+.lnk{background:none;border:0;color:var(--navy);font-weight:700;cursor:pointer;font-size:12.5px;text-decoration:underline;padding:0}
+.s6-hid{display:none}.s6-hid.on{display:block}#s6k.s6-hid.on{display:grid}
+.s6-parc{display:none}.s6-parc.on{display:block}
+.s6col{display:inline-flex;align-items:center;gap:4px;margin:0 8px 0 4px;font-size:12px;color:var(--navy);cursor:pointer;white-space:nowrap}
+.s6-hint{display:block;margin-top:4px;font-size:11.5px;color:#7a869a}
+#s6p th{cursor:pointer}
 #p6 .t5-s input[type=number]{width:70px}
 #s6t th{cursor:pointer}#s6t thead th,#s6p thead th,#s6a thead th{position:sticky;top:0;z-index:2;background:var(--navy)}#s6t td.l,#s6p td.l,#s6a td.l{text-align:left}
 #p6 th.l{text-align:left}#s6p th:nth-child(-n+4),#s6a th{text-align:left}
@@ -248,7 +259,7 @@ footer{color:var(--grey);font-size:11.5px;padding:0 28px 22px;max-width:1500px;m
 </section>
 <!-- ================= TAB 5 · OBIETTIVI ORDINI NATALE (Fase 3 + 4) ================= -->
 <section class="page" id="p5">
-  <div class="t5-upd" id="t5upd"></div>
+  <details class="t5-updd"><summary>Fonti e aggiornamento dati</summary><div class="t5-upd" id="t5upd"></div></details>
   <div class="card" style="margin-bottom:16px">
     <div class="t5-fl">
       <div class="t5-f"><label>Responsabile BU</label><input type="search" class="srch" id="t5r" placeholder="Scrivi un nome…"></div>
@@ -279,7 +290,7 @@ footer{color:var(--grey);font-size:11.5px;padding:0 28px 22px;max-width:1500px;m
   </div>
   <div class="t5-banner" id="t5ban">SIMULAZIONE ATTIVA – i numeri non sono gli obiettivi ufficiali</div>
   <div class="row k4" id="t5k"></div>
-    <div class="card" style="margin-bottom:16px"><h2>Obiettivo vs consegnato + già ordinato per settimana</h2><p class="sub" id="t5cs"></p><div class="cv"><canvas id="t5ch"></canvas></div></div>
+    <div class="card" style="margin-bottom:16px"><h2>Obiettivo vs consegnato + già ordinato per settimana</h2><p class="sub" id="t5cs"></p><div class="cv"><canvas id="t5ch"></canvas></div><div class="cvf" id="t5chf"></div></div>
   <div class="card" style="margin-bottom:16px">
     <h2>Obiettivi settimanali</h2>
     <p class="sub">Consumo stimato = media settimanale storica (consegne 2026, sett. 1–45). Obiettivo = consumo × coefficiente, ridotto dove i silos non hanno spazio. Mancante = obiettivo − già ordinato (ultima estrazione del portafoglio) − consegnato, mai negativo. % ordinato = già ordinato / obiettivo.</p>
@@ -308,7 +319,7 @@ footer{color:var(--grey);font-size:11.5px;padding:0 28px 22px;max-width:1500px;m
     <div class="t5-sl" id="t5qk"></div>
     <div class="row k2" style="margin-top:12px">
       <div><h2 style="font-size:14px">Matrice <span id="t5qmt"></span></h2><div class="tw" style="max-height:460px"><table class="qm" id="t5qm"></table></div></div>
-      <div><h2 style="font-size:14px" id="t5qct"></h2><div class="cv"><canvas id="t5qch"></canvas></div></div>
+      <div><h2 style="font-size:14px" id="t5qct"></h2><div class="cv"><canvas id="t5qch"></canvas></div><div class="cvf" id="t5qchf"></div></div>
     </div>
     <h2 style="font-size:14px;margin-top:14px">Dettaglio</h2>
     <p class="sub" id="t5qds"></p>
@@ -343,16 +354,19 @@ footer{color:var(--grey);font-size:11.5px;padding:0 28px 22px;max-width:1500px;m
 
 <!-- ================= TAB 6 · Fabbisogno da presenze ================= -->
 <section class="page" id="p6">
-  <div class="note" style="margin-bottom:16px" id="s6note"></div>
-  <div class="card" style="margin-bottom:16px">
+  <div class="card s6bar" id="s6bar">
     <div class="t5-fl">
+      <div class="t5-f t5-wide"><label>Allevatore / codice</label><input type="search" class="srch" id="s6q" placeholder="Ragione sociale, codice cliente o UP…"></div>
       <div class="t5-s"><label>Specie</label><select id="s6sp"><option value="">Tutte</option><option>Broiler</option><option>Tacchini</option></select></div>
       <div class="t5-s"><label>Stabilimento</label><select id="s6st"></select></div>
       <div class="t5-s"><label>Responsabile BU</label><select id="s6rs"></select></div>
-      <div class="t5-f t5-wide"><label>Allevatore / codice</label><input type="search" class="srch" id="s6q" placeholder="Codice cliente, UP o ragione sociale…"></div>
-      <div class="t5-btns"><button class="btn ghost" id="s6rst">Azzera filtri</button><button class="btn ghost" id="s6pb">Parametri ▾</button><button class="btn" id="s6csv">Esporta CSV</button></div>
+      <div class="t5-btns"><button class="btn ghost" id="s6rst">Azzera filtri</button><button class="btn ghost" id="s6pb">Parametri ▾</button><button class="btn ghost" id="s6ib">Come si calcola ▾</button><button class="btn" id="s6csv">Esporta CSV</button></div>
     </div>
-    <div class="s6-par" id="s6par">
+    <div class="s6sum"><span id="s6kc"></span><button class="lnk" id="s6kb">Dettagli ▾</button></div>
+  </div>
+  <div class="note s6-hid" style="margin-bottom:16px" id="s6note"></div>
+  <div class="card s6-parc" id="s6parc" style="margin-bottom:16px">
+    <div id="s6par">
       <div class="t5-simh"><b>Ipotesi di uscita dei lotti</b> – valori modificabili; valgono solo sul tuo schermo. Da sostituire con il programma ritiri quando disponibile.</div>
       <div class="t5-fl" style="margin-top:10px">
         <div class="t5-s"><label>Bianco Conv + OGMF · % sfoltita</label><input type="number" id="s6_wsf" min="0" max="100" step="5"></div>
@@ -380,16 +394,21 @@ footer{color:var(--grey);font-size:11.5px;padding:0 28px 22px;max-width:1500px;m
     </div>
   </div>
   <div class="t5-banner" id="s6ban">PARAMETRI MODIFICATI – i numeri differiscono dalla versione condivisa</div>
-  <div class="row k4" id="s6k"></div>
-  <div class="card" style="margin-bottom:16px"><h2>Stima sett. 48 da presenze vs storico, per stabilimento</h2><p class="sub">Solo allevamenti presenti con storico in scheda 5. Tonnellate per settimana.</p><div class="cv"><canvas id="s6ch"></canvas></div></div>
+  <div class="row k4 s6-hid" id="s6k"></div>
   <div class="card" style="margin-bottom:16px">
     <h2>Dettaglio per allevamento presente</h2>
-    <p class="sub" id="s6ts">Una riga per cliente × famiglia. Storico = media consegne 2026 (sett. 1–45) della scheda 5, solo come riferimento: comprende le settimane di vuoto sanitario. Clic sull'intestazione per ordinare.</p>
+    <p class="sub" id="s6ts">Una riga per cliente × famiglia. Clic sull'intestazione per ordinare. Colonne aggiuntive:
+      <label class="s6col"><input type="checkbox" data-g="cod"> Codice cliente e UP</label>
+      <label class="s6col"><input type="checkbox" data-g="tab"> Tabelle</label>
+      <label class="s6col"><input type="checkbox" data-g="lot"> Lotti</label>
+      <label class="s6col"><input type="checkbox" data-g="sto"> Storico e delta</label>
+      <span class="s6-hint">Storico = media consegne 2026 (sett. 1–45) della scheda 5, solo come riferimento: comprende le settimane di vuoto sanitario.</span></p>
     <div class="tw" style="max-height:620px"><table id="s6t"></table></div>
   </div>
   <details class="card" style="margin-bottom:16px"><summary><b>Stima per prodotto</b> (codice mangime da tabella alimentare)</summary><div class="tw" style="max-height:480px;margin-top:10px"><table id="s6p"></table></div></details>
-  <details class="card" style="margin-bottom:16px"><summary><b>Anomalie e casi da verificare</b> <span id="s6an"></span></summary><div class="tw" style="max-height:480px;margin-top:10px"><table id="s6a"></table></div></details>
+  <div class="card" style="margin-bottom:16px"><h2>Stima sett. 48 da presenze vs storico, per stabilimento</h2><p class="sub">Solo allevamenti presenti con storico in scheda 5. Tonnellate per settimana.</p><div class="cv"><canvas id="s6ch"></canvas></div></div>
   <details class="card"><summary><b>Metodo e fonti</b></summary><div class="sub" id="s6m" style="margin-top:10px;line-height:1.6"></div></details>
+  <details class="card" style="margin-bottom:16px"><summary><b>Anomalie e casi da verificare</b> <span id="s6an"></span></summary><div class="tw" style="max-height:480px;margin-top:10px"><table id="s6a"></table></div></details>
 </section>
 
 
@@ -1211,6 +1230,7 @@ function renderUpd(){
   const ts=new Date(DJ.ts), age=(Date.now()-ts)/36e5;
   function fmtTs(s){const d=new Date(s);return d.toLocaleDateString('it-IT')+' ore '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});}
   const tsS=ts.toLocaleDateString('it-IT')+' ore '+ts.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  {const f=`Portafoglio ordini aggiornato il <b>${tsS}</b>`;['t5chf','t5qchf'].forEach(id=>{const e=$5(id);if(e)e.innerHTML=f;});}
   el.innerHTML=`<span class="pill ${age>36?'w':'ok'}">Portafoglio ordini aggiornato il <b>${tsS}</b>${age>36?' · più di 36 ore fa':''}</span>`+
    `<span class="pill">Fonte: ${esc(DJ.file||'')}${DJSRC?' · '+esc(DJSRC):''}</span>`+
    (DJ.cm?`<span class="pill">Consegnato${DJ.cm.ts?' aggiornato il <b>'+fmtTs(DJ.cm.ts)+'</b>':''}: dal ${new Date(DJ.cm.dmin+'T00:00:00').toLocaleDateString('it-IT')} al <b>${new Date(DJ.cm.dmax+'T00:00:00').toLocaleDateString('it-IT')}</b> · ${esc(DJ.cm.file||'')}</span>`:'<span class="pill w">Consegnato non ancora caricato</span>')+
@@ -1623,7 +1643,7 @@ fill('s6st',uniq(D.lots.map(x=>x.s)));fill('s6rs',uniq(D.lots.map(x=>x.r)));
 const pass=g=>{const sp=$6('s6sp').value,st=$6('s6st').value,rs=$6('s6rs').value,q=$6('s6q').value.trim().toLowerCase();
   if(sp&&g.sp!==sp)return false;if(st&&g.s!==st)return false;if(rs&&g.r!==rs)return false;
   if(q){const h=(g.c+' '+g.ups+' '+g.n).toLowerCase();if(!q.split(/\s+/).every(w=>h.includes(w)))return false;}return true;};
-let SORT={k:'t48',d:-1},LAST=[],chart=null;
+let SORT={k:'t48',d:-1},SORTP={k:'w0',d:-1},LAST=[],chart=null;const VIS=new Set();
 function render(){
   KEYS.forEach(k=>{const e=$6('s6_'+k);if(k==='mort')P.mort=e.checked?1:0;else{const v=parseFloat(e.value);if(isFinite(v))P[k]=v;}});
   $6('s6ban').classList.toggle('on',KEYS.some(k=>P[k]!=D.params[k]));
@@ -1637,6 +1657,7 @@ function render(){
    {l:'Vs storico stessi allevamenti',v:pc(b?s48/b-1:null),d:`${nf(s48)} t stimate vs ${nf(b)} t/sett di storico (${HB.length} allevamenti)`,c:s48>b?'a':'g'},
    {l:'Allevamenti presenti',v:nf(G.length),d:`${nf(capi)} capi · ${nm} non mappati · ${nb} senza storico`,c:''}
   ].map(k=>`<div class="card kpi ${k.c}"><div class="lab">${k.l}</div><div class="val">${k.v}</div><div class="det">${k.d}</div></div>`).join('');
+  $6('s6kc').innerHTML=`Sett. 48 <b>${nf(t48)} t</b> (${nf(t48/7)} t/g)<span class="sep">·</span>Sett. 49 <b>${nf(t49)} t</b> (${pc(t48?t49/t48-1:null)})<span class="sep">·</span>Vs storico <b>${pc(b?s48/b-1:null)}</b><span class="sep">·</span><b>${nf(G.length)}</b> allevamenti, ${nf(capi)} capi`;
   /* grafico per stabilimento */
   const st=uniq(HB.map(g=>g.s)),es=st.map(s=>sum(HB.filter(g=>g.s===s),g=>g.t48)),bs=st.map(s=>sum(HB.filter(g=>g.s===s),g=>g.base));
   const cfg={type:'bar',data:{labels:st,datasets:[{label:'Stima sett. 48 da presenze',data:es,backgroundColor:'#2E6DB4',borderRadius:4,borderSkipped:'bottom',maxBarThickness:28},{label:'Storico medio t/sett (scheda 5)',data:bs,backgroundColor:'#B5651D',borderRadius:4,borderSkipped:'bottom',maxBarThickness:28}]},
@@ -1645,22 +1666,27 @@ function render(){
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#eef1f5'},border:{display:false},title:{display:true,text:'t / settimana'},ticks:{callback:v=>nf(v)}}}}};
   if(chart){chart.data=cfg.data;chart.update();}else chart=new Chart($6('s6ch'),cfg);
   /* tabella dettaglio */
-  const C=[['c','CodCliente','l'],['ups','Unità Produttive','l'],['n','Allevatore','l'],['sp','Specie','l'],['tbs','Tabelle','l'],['s','Stabilimento','l'],['r','Responsabile BU','l'],['lot','Lotti'],['capi','Capi'],['eta','Età media gg'],['g48','t/g s.48'],['t48','t s.48'],['g49','t/g s.49'],['t49','t s.49'],['base','Storico t/sett'],['dt','Delta t'],['dp','Delta %']];
+  const CALL=[['c','CodCliente','l','cod'],['ups','Unità Produttive','l','cod'],['n','Allevatore','l'],['sp','Specie','l'],['tbs','Tabelle','l','tab'],['s','Stabilimento','l'],['r','Responsabile BU','l'],['lot','Lotti','','lot'],['capi','Capi'],['eta','Età media gg'],['g48','t/g s.48'],['t48','t s.48'],['g49','t/g s.49'],['t49','t s.49'],['base','Storico t/sett','','sto'],['dt','Delta t','','sto'],['dp','Delta %','','sto']];
+  const C=CALL.filter(c=>!c[3]||VIS.has(c[3]));
   G.forEach(g=>{g.g48=g.t48/7;g.g49=g.t49/7;g.dt=g.hb?g.t48-g.base:null;g.dp=g.hb?g.t48/g.base-1:null;});
   const S=[...G].sort((a,b)=>{const u=a[SORT.k],v=b[SORT.k];if(u==null)return 1;if(v==null)return -1;return (typeof u==='string'?u.localeCompare(v):u-v)*SORT.d;});
   const cell=(g,k)=>{const v=g[k];if(k==='c')return v||'(non mappato)';if(['capi','lot'].includes(k))return nf(v);if(k==='eta')return nf(v,0);if(['g48','g49','t48','t49','base','dt'].includes(k))return nf(v,1);if(k==='dp')return pc(v);return esc(v);};
   $6('s6t').innerHTML='<thead><tr>'+C.map(c=>`<th data-k="${c[0]}" class="${c[2]||''}">${c[1]}${SORT.k===c[0]?(SORT.d>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
     S.map(g=>'<tr>'+C.map(c=>`<td class="${c[2]||''}">${cell(g,c[0])}</td>`).join('')+'</tr>').join('')+
-    `</tbody><tfoot><tr><td class="l" colspan="8">Totale (${G.length})</td><td>${nf(capi)}</td><td></td><td>${nf(t48/7,1)}</td><td>${nf(t48,1)}</td><td>${nf(t49/7,1)}</td><td>${nf(t49,1)}</td><td>${nf(b,1)}</td><td>${nf(s48-b,1)}</td><td>${pc(b?s48/b-1:null)}</td></tr></tfoot>`;
+    (()=>{const T={lot:nf(sum(G,g=>g.lot)),capi:nf(capi),g48:nf(t48/7,1),t48:nf(t48,1),g49:nf(t49/7,1),t49:nf(t49,1),base:nf(b,1),dt:nf(s48-b,1),dp:pc(b?s48/b-1:null)};
+      return '</tbody><tfoot><tr>'+C.map((c,i)=>i===0?`<td class="l">Totale (${G.length})</td>`:`<td class="${c[2]||''}">${T[c[0]]!=null?T[c[0]]:''}</td>`).join('')+'</tr></tfoot>';})();
   $6('s6t').querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;SORT=SORT.k===k?{k,d:-SORT.d}:{k,d:typeof G[0]?.[k]==='string'?1:-1};render();});
   /* per prodotto (sugli allevamenti filtrati) */
   const keep=new Set(G.map(g=>g.k)),pr=new Map(),desc={};
   Object.values(CV).forEach(c=>c.pd.forEach(([k,d])=>desc[k]=d));
   res.forEach(r=>{const x=r.x,k=x.c?x.c+'|'+fam(x):'UP:'+x.up;if(!keep.has(k))return;
     Object.entries(r.pr).forEach(([kk,t])=>{const [wk,cod]=kk.split('|'),id=spg(x)+'|'+x.tb+'|'+cod;const o=pr.get(id)||{sp:spg(x),tb:x.tb,cod,w:[0,0]};o.w[+wk]+=t;pr.set(id,o);});});
-  const PR=[...pr.values()].sort((a,b)=>a.sp.localeCompare(b.sp)||a.tb.localeCompare(b.tb)||b.w[0]-a.w[0]);
-  $6('s6p').innerHTML='<thead><tr><th>Specie</th><th>Tabella</th><th>Cod.</th><th>Prodotto</th><th>t s.48</th><th>t s.49</th></tr></thead><tbody>'+
+  const PV=o=>({sp:o.sp,tb:o.tb,cod:o.cod,ds:desc[o.cod]||'',w0:o.w[0],w1:o.w[1]});
+  const PR=[...pr.values()].sort((a,b)=>{const u=PV(a)[SORTP.k],v=PV(b)[SORTP.k];return (typeof u==='string'?u.localeCompare(v):u-v)*SORTP.d||b.w[0]-a.w[0];});
+  const PH=[['sp','Specie'],['tb','Tabella'],['cod','Cod.'],['ds','Prodotto'],['w0','t s.48'],['w1','t s.49']];
+  $6('s6p').innerHTML='<thead><tr>'+PH.map(c=>`<th data-k="${c[0]}">${c[1]}${SORTP.k===c[0]?(SORTP.d>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
     PR.map(o=>`<tr><td class="l">${o.sp}</td><td class="l">${o.tb}</td><td class="l">${o.cod}</td><td class="l">${esc(desc[o.cod])}</td><td>${nf(o.w[0],1)}</td><td>${nf(o.w[1],1)}</td></tr>`).join('')+'</tbody>';
+  $6('s6p').querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;SORTP=SORTP.k===k?{k,d:-SORTP.d}:{k,d:['w0','w1'].includes(k)?-1:1};render();});
   /* anomalie: statiche (dal file) + uscite con i parametri correnti */
   const AN=D.anom.slice();
   res.forEach(r=>{const x=r.x,L=STD.has(x.tb)?GP(x.tb)[2]:LIM(x.tb);
@@ -1685,7 +1711,10 @@ $6('s6m').innerHTML=[
 ['s6sp','s6st','s6rs'].forEach(id=>$6(id).onchange=render);$6('s6q').oninput=render;
 KEYS.forEach(k=>$6('s6_'+k).onchange=render);
 $6('s6rst').onclick=()=>{['s6sp','s6st','s6rs'].forEach(id=>$6(id).value='');$6('s6q').value='';render();};
-$6('s6pb').onclick=()=>$6('s6par').classList.toggle('on');
+$6('s6pb').onclick=()=>$6('s6parc').classList.toggle('on');
+$6('s6ib').onclick=()=>$6('s6note').classList.toggle('on');
+$6('s6kb').onclick=()=>{const k=$6('s6k');k.classList.toggle('on');$6('s6kb').textContent=k.classList.contains('on')?'Nascondi dettagli ▴':'Dettagli ▾';};
+document.querySelectorAll('#s6ts input[data-g]').forEach(cb=>cb.onchange=()=>{cb.checked?VIS.add(cb.dataset.g):VIS.delete(cb.dataset.g);render();});
 $6('s6def').onclick=()=>{setP(D.params);render();};
 $6('s6csv').onclick=()=>{
   const H=['CodCliente','Unita Produttive','Allevatore','Specie','Tabelle','Stabilimento','Responsabile BU','Area','Lotti','Capi','Eta media gg','t/g sett48','t sett48','t/g sett49','t sett49','Storico t/sett','Delta t','Delta %'];
